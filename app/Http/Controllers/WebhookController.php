@@ -17,6 +17,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Razorpay\Api\Api;
 
+use Stripe\Webhook;
+use KingFlamez\Rave\Facades\Rave as Flutterwave;
+
 
 class WebhookController extends Controller
 {
@@ -302,6 +305,62 @@ class WebhookController extends Controller
         Log::debug('payu webhook called: ' . var_export($input, true));
 
 
+    }
+
+    public function flutterwave(Request $request){
+        try {
+            //This verifies the webhook is sent from Flutterwave
+            $verified = Flutterwave::verifyWebhook();
+
+            // Verify the transaction
+            if ($verified) {
+                $verificationData = Flutterwave::verifyTransaction($request->id);
+                if ($verificationData['status'] === 'success') {
+                    $data = (object)$verificationData['data'];
+                    $metaData = (object)$verificationData['data']['meta'];
+                    $packageId = $metaData->package_id;
+                    $userId = $metaData->user_id;
+
+                    // Add Entry in Payments as history
+                    $payment = new Payments();
+                    $payment->transaction_id = $data->id;
+                    $payment->amount =  $data->amount;
+                    $payment->package_id = $packageId;
+                    $payment->customer_id = $userId;
+                    $payment->status = 1;
+                    $payment->payment_gateway = "flutterwave";
+                    $payment->save();
+
+                    // Start Date as current date
+                    $startDate = Carbon::now();
+                    // Get User Data
+                    $user = Customer::find($userId);
+                    // Get Package Data
+                    $package = Package::find($packageId);
+                    // Check that package is not empty
+                    if (collect($package)->isNotEmpty()) {
+                        // Add Entry of package in User Purchased package to allocate the package
+                        $user_package = new UserPurchasedPackage();
+                        $user_package->modal()->associate($user);
+                        $user_package->package_id = $packageId;
+                        $user_package->start_date = $startDate;
+                        $user_package->end_date = $package->duration != 0 ? Carbon::now()->addDays($package->duration) : NULL;
+                        $user_package->save();
+
+                        // Update the user's subscription to 1
+                        $user->subscription = 1;
+                        $user->update();
+                    }
+                }else{
+                    Log::error('Flutterwave Webhook Status Not Succeeded');
+                }
+            }else{
+                Log::error('Flutterwave Webhook Verification Error');
+            }
+        }catch (\Exception $e) {
+            // Other Error Exception
+            return Log::error('Flutterwave Webhook failed');
+        }
     }
 
 }

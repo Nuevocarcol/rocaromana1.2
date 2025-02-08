@@ -1,7 +1,7 @@
 @extends('layouts.main')
 
 @section('title')
-    {{ __('Messages ') }}
+    {{ __('Messages') }}
 @endsection
 
 @section('page-title')
@@ -30,11 +30,10 @@
                                     @empty($value->receiver)
                                         <li data-toggle="tab" data-target="#inbox-message-1"
                                             id="{{ 'tabs' . $value->sender->id }}"
-                                            onclick="setallMessage({{ $value->property_id }}, {{ $value->sender->id }});"
+                                            onclick="setallMessage({{ $value->property_id }}, {{ $value->sender->id }}, {{ $value->is_blocked_by_me }}, {{ $value->is_blocked_by_user }});"
                                             style="display: flex;">
 
-                                            <img alt="" class="img-circle medium-image"
-                                                src="{{ $value->sender->profile ? $value->sender->profile : 'https://www.nicepng.com/png/detail/128-1280406_view-user-icon-png-user-circle-icon-png.png' }}">
+                                            <img alt="" class="img-circle medium-image" src="{{ $value->sender->profile ? $value->sender->profile : url('assets/images/faces/2.jpg') }}">
 
                                             <div class="vcentered info-combo">
                                                 <h3 class="no-margin-bottom name"> <b>{{ $value->sender->name }}</b> </h3>
@@ -50,11 +49,11 @@
                                     @empty($value->sender)
                                         <li data-toggle="tab" data-target="#inbox-message-1"
                                             id="{{ 'tabs' . $value->receiver->id }}"
-                                            onclick="setallMessage({{ $value->property_id }}, {{ $value->receiver->id }});"
+                                            onclick="setallMessage({{ $value->property_id }}, {{ $value->receiver->id }}, {{ $value->is_blocked_by_me }}, {{ $value->is_blocked_by_user }});"
                                             style="display: flex;">
 
                                             <img alt="" class="img-circle medium-image"
-                                                src="{{ $value->receiver->profile ? $value->receiver->profile : 'https://www.nicepng.com/png/detail/128-1280406_view-user-icon-png-user-circle-icon-png.png' }}">
+                                                src="{{ $value->receiver->profile ? $value->receiver->profile : url('assets/images/faces/2.jpg') }}">
 
                                             <div class="vcentered info-combo">
                                                 <h3 class="no-margin-bottom name"> <b>{{ $value->receiver->name }} </b></h3>
@@ -69,11 +68,11 @@
                                 @foreach ($otherUsers as $key => $value)
                                     <li data-toggle="tab" data-target="#inbox-message-1"
                                         id="{{ 'tabs' . $value['customer_id'] }}"
-                                        onclick="setallMessage({{ $value['proeperty_id'] }}, {{ $value['customer_id'] }});"
+                                        onclick="setallMessage({{ $value['proeperty_id'] }}, {{ $value['customer_id'] }},{{$value['is_blocked_by_me']}},{{$value['is_blocked_by_user']}});"
                                         style="display: flex;">
 
                                         <img alt="" class="img-circle medium-image"
-                                            src="{{ $value['profile'] ? $value['profile'] : 'https://www.nicepng.com/png/detail/128-1280406_view-user-icon-png-user-circle-icon-png.png' }}">
+                                            src="{{ $value['profile'] ? $value['profile'] : url('assets/images/faces/2.jpg') }}">
 
                                         <div class="vcentered info-combo">
                                             <h3 class="no-margin-bottom name"> <b>{{ $value['name'] }}</b> </h3>
@@ -98,66 +97,56 @@
                     </div>
 
                     <div class="message-chat" id="myscroll" style="background-color: #ffffff;">
-                        <div class="chat-body myscroll" id="chat">
-
-                        </div>
-
+                        <div class="chat-body myscroll" id="chat"></div>
                         <div class="chat-footer">
+                            <div id="file-preview"></div>
 
+                            <div class="blocked-user-message-div" style="display: none">
+                                <span class="for-blocked-by-admin" style="display: none">
+                                    {{ __("You have blocked the user to unblock ") }} <a style="cursor: pointer;" class="unblock-user-url unblock-user">{{ __("Click Here") }}</a>
+                                </span>
+                                <span class="for-blocked-by-user" style="display: none">
+                                    {{ __("You have been blocked") }}
+                                </span>
+                            </div>
                             <form method="POST" id='chat_form'>
-
                                 @csrf
-
+                                <input type="hidden" id="blocked-by-admin">
+                                <input type="hidden" id="blocked-by-user">
                                 <input type="hidden" name="prop_id" id="prop_id">
                                 <input type="hidden" name="inquiry_by" id="inquiry_by">
                                 <input type="hidden" name="inquiry" id="inquiry">
-
                                 <input type="hidden" name="receiver_id" id=receiver_id>
                                 <input type="hidden" name="sender_id" id="sender_id" value="0">
+                                <input type="hidden" name="apiKey" id="apiKey" value="{{ $firebase_settings['apiKey'] ? $firebase_settings['apiKey'] : '' }}">
+                                <input type="hidden" name="authDomain" id="authDomain" value="{{ $firebase_settings['authDomain'] ? $firebase_settings['authDomain'] : '' }}">
+                                <input type="hidden" name="projectId" id="projectId" value="{{ $firebase_settings['projectId'] ? $firebase_settings['projectId'] : '' }}">
+                                <input type="hidden" name="storageBucket" id="storageBucket" value="{{ $firebase_settings['storageBucket'] ? $firebase_settings['storageBucket'] : '' }}">
+                                <input type="hidden" name="messagingSenderId" id="messagingSenderId" value="{{ $firebase_settings['messagingSenderId'] ? $firebase_settings['messagingSenderId'] : '' }}">
+                                <input type="hidden" name="appId" id="appId" value="{{ $firebase_settings['appId'] ? $firebase_settings['appId'] : '' }}">
+                                <input type="hidden" name="measurementId" id="measurementId" value="{{ $firebase_settings['measurementId'] ? $firebase_settings['measurementId'] : '' }}">
+                                <input type="text" class="send-message-text" id="Onmessage" placeholder="{{ __('Message') }}"/>
 
-                                <input type="hidden" name="apiKey" id="apiKey"
-                                    value="{{ $firebase_settings['apiKey'] ? $firebase_settings['apiKey'] : '' }}">
-
-                                <input type="hidden" name="authDomain" id="authDomain"
-                                    value="{{ $firebase_settings['authDomain'] ? $firebase_settings['authDomain'] : '' }}">
-
-                                <input type="hidden" name="projectId" id="projectId"
-                                    value="{{ $firebase_settings['projectId'] ? $firebase_settings['projectId'] : '' }}">
-
-                                <input type="hidden" name="storageBucket" id="storageBucket"
-                                    value="{{ $firebase_settings['storageBucket'] ? $firebase_settings['storageBucket'] : '' }}">
-
-                                <input type="hidden" name="messagingSenderId" id="messagingSenderId"
-                                    value="{{ $firebase_settings['messagingSenderId'] ? $firebase_settings['messagingSenderId'] : '' }}">
-
-                                <input type="hidden" name="appId" id="appId"
-                                    value="{{ $firebase_settings['appId'] ? $firebase_settings['appId'] : '' }}">
-
-                                <input type="hidden" name="measurementId" id="measurementId"
-                                    value="{{ $firebase_settings['measurementId'] ? $firebase_settings['measurementId'] : '' }}">
-
-                                <input type="text" class="send-message-text" id="Onmessage" />
-
+                                {{-- Audio Message --}}
                                 <label class="audio-button">
-                                    <input type="button" value="" id="start-btn" class="js-start"
-                                        style="display: none">
+                                    <input type="button" value="" id="start-btn" class="js-start" style="display: none">
                                     <input type="hidden" name="aud" id="aud" style="display:none">
-
-                                    <i class="bi bi-mic"></i>
-                                    <h6 id='record'>Recording</h6>
+                                    <span style="display: flex">
+                                        <i class="bi bi-mic"></i>
+                                        <h6 id='record' class="ml-2">{{ __('Recording') }}</h6>
+                                    </span>
                                     <div class="audio-wrapper" style="display: none">
                                         <audio src="" controls class="js-audio audio" name="audio_file"></audio>
                                     </div>
                                 </label>
 
+                                {{-- Upload File Button --}}
                                 <label class="upload-file">
-                                    <input type="file" name="attachment" id="Homeattachment">
+                                    <input type="file" name="attachment" id="Homeattachment" accept="image/png,image/jpg,image/jpeg,application/pdf,application/msword">
                                     <i class="fa fa-paperclip"></i>
                                 </label>
-                                <button type="button" class="send-message-button chat-send btn-info"
-                                    onclick="OnsendMessage();">
-                                    Send <i class="fa fa-send"></i>
-                                </button>
+                                {{-- Send Button --}}
+                                <button type="button" class="send-message-button chat-send btn-info" onclick="OnsendMessage();"> {{ __('Send') }} <i class="fa fa-send"></i></button>
                             </form>
 
                         </div>
@@ -171,6 +160,7 @@
     @section('script')
         <script>
             $(document).ready(function() {
+                $("#file-preview").hide();
                 $('.list-unstyled.contacts li:first').attr('class', 'active');
                 $('.active').click();
 
@@ -320,12 +310,37 @@
                             var html = '';
                             $("#chat").empty();
                             $.each(data.reverse(), function(i, item) {
-                                if (item.attachment == "") {
+                                const fileUrl = item.attachment;
+                                if(fileUrl == ""){
                                     file = "";
-                                } else {
-                                    file = '<img alt="Pic" src="' + item.attachment +
-                                        '" style="height: 216px;width: 216px;"/><br>'
+                                }else{
+                                    // Identify file type
+                                    let fileType;
+
+                                    if (fileUrl.endsWith('.png') || fileUrl.endsWith('.jpg') || fileUrl.endsWith('.jpeg')) {
+                                        fileType = 'image';
+                                    } else if (fileUrl.endsWith('.pdf')) {
+                                        fileType = 'pdf';
+                                    } else if (fileUrl.endsWith('.doc') || fileUrl.endsWith('.docx')) {
+                                        fileType = 'doc';
+                                    } else {
+                                        fileType = 'unknown'; // Handle unknown file types gracefully
+                                    }
+
+                                    // Generate content based on file type
+                                    if (fileType === 'image') {
+                                        file = '<img alt="Pic" src="' + fileUrl + '" style="height: 216px; width: 216px;"><br>';
+                                    } else if (fileType === 'pdf' || fileType === 'doc') {
+                                        const fileName = fileUrl.split('/').pop(); // Extract filename from URL
+                                        file = `<a href="${fileUrl}" download="${fileName}">${fileName}</a><br>`;
+                                    }
                                 }
+                                // if (item.attachment == "") {
+                                //     file = "";
+                                // } else {
+                                //     file = '<img alt="Pic" src="' + item.attachment +
+                                //         '" style="height: 216px;width: 216px;"/><br>'
+                                // }
                                 if (item.audio == "") {
                                     audio = "";
 
@@ -340,6 +355,7 @@
                                 }
 
                                 // Create a Message div according to condition
+                                let adminProfileImage = "{{ url('assets/images/faces/2.jpg') }}";
                                 let dataMessageDiv;
                                 if(item.message){
                                     dataMessageDiv = `<div class="message-text">  ${audio}  ${file}  ${item.message} </div>`
@@ -350,7 +366,7 @@
 
                                     html +=
                                         `<div class="message my-message">
-                                            <img alt="" class="img-circle medium-image" src="https://www.nicepng.com/png/detail/128-1280406_view-user-icon-png-user-circle-icon-png.png">
+                                            <img alt="" class="img-circle medium-image" src="${adminProfileImage}">
                                             <div class="message-body">
                                                 <div class="message-body-inner" style="border-radius: 4px;background-color: #f5f5f4;padding:16px;">
                                                     ${dataMessageDiv}
@@ -360,7 +376,7 @@
                                         <br>
                                         </div>`;
                                 } else {
-                                    profile = item.sendeprofile ? item.sendeprofile : 'https://www.nicepng.com/png/detail/128-1280406_view-user-icon-png-user-circle-icon-png.png';
+                                    profile = item.sendeprofile ? item.sendeprofile : adminProfileImage;
                                     html +=
                                        `<div class="message info">
                                             <img alt="" class="img-circle medium-image" src="${profile}">
@@ -394,6 +410,7 @@
 
             function OnsendMessage() {
                 var submitButton = ($('.chat-send'));
+                var submitButtonText = 'Send <i class="fa fa-send"></i>';
 
                 submitButton.text('Sending...');
                 submitButton.attr('disabled', 'disabled');
@@ -406,7 +423,7 @@
                 $('.progress').show();
                 var fd = new FormData();
 
-                fd.append('attachment', attachment[0]);
+                fd.append('attachment', attachment[0] ?? "");
                 fd.append('receiver_id', receive_by);
                 fd.append('message', message);
                 fd.append('property_id', $('#prop_id').val());
@@ -458,22 +475,22 @@
                             $('.custom-file-label').html('');
                             $("#Onmessage").val("");
                             getAllMessage(0, 10);
-                            submitButton.text('Send');
+                            submitButton.html(submitButtonText);
                             submitButton.removeAttr('disabled');
                             $('#aud').val('');
+                            $("#file-preview").hide();
                         }
                         if (data.error == true) {
-                            $("#Onmessage").val("");
-                            submitButton.text('Send');
-                            alert('there is No Chat');
+                            submitButton.html(submitButtonText);
+                            submitButton.removeAttr('disabled');
+                            alert(data.message);
                         }
                     }
                 });
             }
 
 
-            function setallMessage(id, c_id) {
-
+            function setallMessage(id, c_id, blockedByMe = 0, blockedByUser = 0) {
                 $('.list-unstyled.contacts li.active').css('borderRight', '');
                 $('#receiver_id').val(c_id);
                 $('#prop_id').val(id);
@@ -497,8 +514,27 @@
                     async: true,
                     cache: false,
                     success: function(data) {
-
-
+                        $(document).ready(function () {
+                            if(blockedByMe == 1){
+                                $("#chat_form").hide();
+                                $(".blocked-user-message-div").show();
+                                $(".for-blocked-by-admin").show();
+                                $(".for-blocked-by-user").hide();
+                                $('#block-user').hide();
+                            }else if(blockedByUser == 1){
+                                $("#chat_form").hide();
+                                $(".blocked-user-message-div").show();
+                                $(".for-blocked-by-admin").hide();
+                                $(".for-blocked-by-user").show();
+                                $('#block-user').show();
+                            }else{
+                                $("#chat_form").show();
+                                $(".blocked-user-message-div").hide();
+                                $(".for-blocked-by-admin").hide();
+                                $(".for-blocked-by-user").hide();
+                                $('#block-user').show();
+                            }
+                        })
                         if (data != '') {
                             // Get the active tab
                             var activeTab = document.querySelector('#tabs' + c_id);
@@ -514,10 +550,20 @@
 
                             var chatHeader = document.querySelector('.chat_header');
                             if (chatHeader) {
-                                chatHeader.innerHTML =
-                                    '<img alt="" class="img-circle medium-image" src="' + (
-                                        img_src ? img_src : '') + '">' +
-                                    '<div>' + (username ? username : '') + '</div>';
+                                let url = `{{ route('block-user', ':id') }}`.replace(':id', c_id);
+                                chatHeader.innerHTML = `
+                                    <div>
+                                        <img alt="" class="img-circle medium-image" src="${img_src ? img_src : ''}">
+                                        <span class="ms-2 me-auto">${username ? username : ''}</span>
+                                    </div>
+                                    <div class="block-user" id="block-user" data-url="${url}">
+                                        <i class="fa fa-ban" aria-hidden="true"></i>
+                                    </div>
+                                `;
+
+
+                                let unblockUrl = `{{ route('unblock-user', ':id') }}`.replace(':id', c_id);
+                                $(".blocked-user-message-div").find(".unblock-user-url").data("url",unblockUrl);
                             }
 
 
@@ -528,11 +574,32 @@
 
 
                             $.each(data.reverse(), function(i, item) {
-                                if (item.attachment == "") {
+                                const fileUrl = item.attachment;
+                                if(fileUrl == ""){
                                     file = "";
-                                } else {
-                                    file = '<img alt="Pic" src="' + item.attachment + '"style="height: 216px;width: 216px;"/><br>'
+                                }else{
+                                    // Identify file type
+                                    let fileType;
+
+                                    if (fileUrl.endsWith('.png') || fileUrl.endsWith('.jpg') || fileUrl.endsWith('.jpeg')) {
+                                        fileType = 'image';
+                                    } else if (fileUrl.endsWith('.pdf')) {
+                                        fileType = 'pdf';
+                                    } else if (fileUrl.endsWith('.doc') || fileUrl.endsWith('.docx')) {
+                                        fileType = 'doc';
+                                    } else {
+                                        fileType = 'unknown'; // Handle unknown file types gracefully
+                                    }
+
+                                    // Generate content based on file type
+                                    if (fileType === 'image') {
+                                        file = '<img alt="Pic" src="' + fileUrl + '" style="height: 216px; width: 216px;"><br>';
+                                    } else if (fileType === 'pdf' || fileType === 'doc') {
+                                        const fileName = fileUrl.split('/').pop(); // Extract filename from URL
+                                        file = `<a href="${fileUrl}" download="${fileName}">${fileName}</a><br>`;
+                                    }
                                 }
+
                                 if (item.audio == "") {
                                     audio = "";
                                 } else {
@@ -546,6 +613,7 @@
                                 }
 
                                 // Create a Message div according to condition
+                                let adminProfileImage = "{{ url('assets/images/faces/2.jpg') }}";
                                 let dataMessageDiv;
                                 if(item.message){
                                     dataMessageDiv = `<div class="message-text">  ${audio}  ${file}  ${item.message} </div>`
@@ -556,7 +624,7 @@
 
                                     html +=
                                         `<div class="message my-message">
-                                            <img alt="" class="img-circle medium-image" src="https://www.nicepng.com/png/detail/128-1280406_view-user-icon-png-user-circle-icon-png.png">
+                                            <img alt="" class="img-circle medium-image" src="${adminProfileImage}">
                                             <div class="message-body">
                                                 <div class="message-body-inner" style="border-radius: 4px;background-color: #f5f5f4;padding:16px;">
                                                     ${dataMessageDiv}
@@ -566,7 +634,7 @@
                                         <br>
                                         </div>`;
                                 } else {
-                                    profile = item.sendeprofile ? item.sendeprofile : 'https://www.nicepng.com/png/detail/128-1280406_view-user-icon-png-user-circle-icon-png.png';
+                                    profile = item.sendeprofile ? item.sendeprofile : adminProfileImage;
                                     html +=
                                        `<div class="message info">
                                             <img alt="" class="img-circle medium-image" src="${profile}">
@@ -586,6 +654,7 @@
                             $('.myscroll').animate({
                                 scrollTop: $('.myscroll').get(0).scrollHeight
                             }, 1500);
+
                         } else {
                             // Get the active tab
                             var activeTab = document.querySelector('#tabs' + c_id);
@@ -601,11 +670,20 @@
 
 
                             var chatHeader = document.querySelector('.chat_header');
+
                             if (chatHeader) {
-                                chatHeader.innerHTML =
-                                    '<img alt="" class="img-circle medium-image" src="' + (
-                                        img_src ? img_src : '') + '">' +
-                                    '<div>' + (username ? username : '') + '</div>';
+                                let url = `{{ route('block-user', ':id') }}`.replace(':id', c_id);
+                                chatHeader.innerHTML = `
+                                    <div>
+                                        <img alt="" class="img-circle medium-image" src="${img_src ? img_src : ''}">
+                                        <span class="ms-2 me-auto">${username ? username : ''}</span>
+                                    </div>
+                                    <div class="block-user" id="block-user" data-url="${url}">
+                                        <i class="fa fa-ban" aria-hidden="true"></i>
+                                    </div>
+                                `;
+                                let unblockUrl = `{{ route('unblock-user', ':id') }}`.replace(':id', c_id);
+                                $(".blocked-user-message-div").find(".unblock-user-url").data("url",unblockUrl);
                             }
 
                             // $("#Onmessage").html("");
@@ -620,10 +698,31 @@
         <script type="text/javascript">
             messaging.onMessage(function(payload) {
                 if (payload.data.property_id == $('#prop_id').val()){
-                    if (payload.data.file == "") {
+
+                    const fileUrl = payload.data.file;
+                    if(fileUrl == ""){
                         file = "";
-                    } else {
-                        file = '<img alt="Pic" src="' + payload.data.file +'" / style="height: 216px;width: 216px;"><br>'
+                    }else{
+                        // Identify file type
+                        let fileType;
+
+                        if (fileUrl.endsWith('.png') || fileUrl.endsWith('.jpg') || fileUrl.endsWith('.jpeg')) {
+                            fileType = 'image';
+                        } else if (fileUrl.endsWith('.pdf')) {
+                            fileType = 'pdf';
+                        } else if (fileUrl.endsWith('.doc') || fileUrl.endsWith('.docx')) {
+                            fileType = 'doc';
+                        } else {
+                            fileType = 'unknown'; // Handle unknown file types gracefully
+                        }
+
+                        // Generate content based on file type
+                        if (fileType === 'image') {
+                            file = '<img alt="Pic" src="' + fileUrl + '" style="height: 216px; width: 216px;"><br>';
+                        } else if (fileType === 'pdf' || fileType === 'doc') {
+                            const fileName = fileUrl.split('/').pop(); // Extract filename from URL
+                            file = `<a href="${fileUrl}" download="${fileName}">${fileName}</a><br>`;
+                        }
                     }
                     if (payload.data.audio == "") {
                         audio = "";
@@ -664,5 +763,56 @@
                     }
                 }
             })
+            $('#Homeattachment').change(function(e) {
+            $("#file-preview").show();
+            const file = e.target.files[0];
+
+            // Check if a file is selected
+            if (file) {
+                // Check file type (optional)
+                if (!isValidFileType(file)) {
+                    alert('Invalid file type! Please select an image.');
+                    return;
+                }
+
+                // Preview for images
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        $('#file-preview').html(`
+                            <div class="file-preview-with-close">
+                                <img src="${e.target.result}" alt="Preview">
+                                <button id="remove-file" class="btn btn-sm btn-primary"type="button">X</button>
+                            </div>
+                        `);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    // Display filename for other file types (optional)
+                    $('#file-preview').html(`
+                        <div class="file-preview-with-close">
+                            <p>${file.name}</p>
+                            <button id="remove-file" class="btn btn-sm btn-primary" type="button">X</button>
+                        </div>
+                    `);
+                }
+
+                // Add event listener for remove button
+                $('#file-preview').on('click', '#remove-file', function() {
+                    $('#Homeattachment').val('');  // Clear the input file
+                    $('#file-preview').hide();  // Hide the preview div
+                    $('#file-preview').html('');  // Clear the preview content
+                });
+            } else {
+                // Clear preview if no file selected
+                $('#file-preview').html('');
+            }
+        });
+
+        function isValidFileType(file) {
+            const allowedTypes = ['image/png', 'image/jpg', 'image/jpeg', 'application/pdf', 'application/msword'];
+            return allowedTypes.includes(file.type);
+        }
+
         </script>
     @endsection

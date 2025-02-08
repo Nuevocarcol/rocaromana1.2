@@ -21,6 +21,7 @@
         "php-webdriver/webdriver": "^1.14",
         "razorpay/razorpay": "2.*",
         "spatie/image": "^2.2",
+        "stripe/stripe-php": "^16.5",
         "sunra/php-simple-html-dom-parser": "^1.5",
         "symfony/console": "^6.3",
         "symfony/dom-crawler": "^6.3",
